@@ -137,6 +137,11 @@ wait_for_s3_objects(
 
 ---
 
+## Architecture
+
+### Reports Processing DAG
+diagrams/png/reports_processing_dag.png
+
 ## 📝 Notes
 
 - For us-east-1, you can create S3 buckets without a `CreateBucketConfiguration`. For other regions, supply a `LocationConstraint`.
@@ -146,4 +151,4 @@ wait_for_s3_objects(
 
 ## 🔗 License
 
-Use freely, attribution appreciated.
+MIT License, attribution appreciated.

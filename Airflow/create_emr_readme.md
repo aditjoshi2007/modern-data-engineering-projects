@@ -79,7 +79,17 @@ pip install pytest
 pytest -q
 ```
 
+## Architecture
+
+### EMR Batch Load DAG
+diagrams/png/emr_batch_load_dag.png
+
 ## Notes
 - Keep AWS creds & secrets out of code. Reference them via Airflow Connections/Variables.
 - For production, consider adding `EmrJobFlowSensor`/`EmrStepSensor` or AWS waiters if preferred.
 - The helper polling functions emulate robust behavior with explicit failure paths.
+
+## 🔗 License
+
+MIT License, attribution appreciated.
+
