@@ -1,0 +1,144 @@
+{
+   "common_parameters":{
+      "AWS_REGION":"us-east-1",
+      "ARN":"<arn>",
+      "layers":[
+         "raw"
+      ],
+      "lob":"ibm_db2_tables_ingestion",
+      "glue_prefix":"",
+      "s3_buckets":[
+         {
+            "s3_landing_secure_bucket":"<s3_bucket>",
+            "s3_landing_bucket":"<s3_bucket>",
+            "s3_landing_path":"<s3_prefix>",
+            "s3_raw_bucket":"<s3_prefix>",
+            "s3_raw_path":"<s3_prefix>",
+            "s3_raw_current_path":"<s3_prefix>"
+         }
+      ]
+   },
+   "tables_definitions":[
+      {
+         "is_large_table":"false",
+         "create_raw_current":"True",
+         "use_secure_folder":"false",
+         "global_date_cleansing_rule":{
+            "suffix":[
+               "_d",
+               "_dt",
+               "_date"
+            ]
+         },
+         "sql_in_code":"True",
+         "schemas":[
+            "<schema_names>"
+         ],
+         "table":"table_name",
+         "fixed_columns":[
+            
+         ],
+         "helper_table_name": "helper_table_name",
+         "fixedColumnsCleansingRules": [
+                {
+                    "rule": "dob",
+                    "columns": [
+                        {
+                            "src_col": "col_name_dt",
+                            "tgt_col": "c_col_name_dt"
+                        }
+                    ]
+                },
+                {
+                    "rule": "taxid",
+                    "columns": [
+                        {
+                            "src_col": "col_name",
+                            "tgt_col": "c_col_name"
+                        }
+                    ]
+                },
+                {
+                    "rule": "name",
+                    "columns": [
+                        {
+                            "action": "first_name",
+                            "src_col": "col_name_nm",
+                            "tgt_col": "c_col_name_nm"
+                        },
+                        {
+                            "action": "full_name",
+                            "src_col": [
+                                "col_name_nm",
+                                "col_name_nm",
+                                "col_name_nm",
+                                "col_name_nm"
+                            ],
+                            "tgt_col": "d_full_name"
+                        }
+                    ]
+                },
+                {
+                    "rule": "telephone",
+                    "columns": [
+                        {
+                            "src_col": "col_name_phone_no",
+                            "tgt_col": "c_col_name_phone_no"
+                        }
+                    ]
+                },
+                {
+                    "rule": "address",
+                    "columns": [
+                        {
+                            "action": "address_line_1",
+                            "src_col": "col_name_street_nm",
+                            "tgt_col": "c_col_name_street_nm"
+                        },
+                        {
+                            "action": "city",
+                            "src_col": "col_name_city_nm",
+                            "tgt_col": "c_col_name_city_nm"
+                        },
+                        {
+                            "action": "zipcode5",
+                            "src_col": "col_name_zip_cd",
+                            "tgt_col": "c_col_name_zip_cd"
+                        }
+                    ]
+                },
+                {
+                    "rule": "state",
+                    "helper_table_query": "SELECT col1, col2, col3 FROM tbl_name WHERE col4 = \\'state_filter\\'",
+                    "columns": [
+                        {
+                            "src_col": "col_name_st_cd",
+                            "tgt_col": "c_tbl_name_st_cd"
+                        }
+                    ]
+                },
+                {
+                    "rule": "country",
+                    "helper_table_query": "SELECT col1, col2, col3 FROM tbl_name WHERE col4 = \\'country_filter\\'",
+                    "columns": [
+                        {
+                            "src_col": "col_name_country_c",
+                            "tgt_col": "c_col_name_country_c"
+                        }
+                    ]
+                }
+            ],
+         "raw_current_pk_columns":[
+            "<PK_cols>"
+         ],
+         "raw_current_pk_sort_columns":[
+            "<sort_cols>"
+         ],
+         "s3_landing_format":"parquet",
+         "s3_landing_folder":"<s3_prefix>",
+         "src_table_schema":"col1=CHARACTER|col2=DECIMAL(17,0)|col3=SMALLINT|col4=DATE|col5=TIMESTAMP|col6=BIGINT|col7=FLOAT|col8=DOUBLE|col9=STRING",
+         "data_sanity_check":"true",
+         "user":"user_name"
+      }
+   ]
+}

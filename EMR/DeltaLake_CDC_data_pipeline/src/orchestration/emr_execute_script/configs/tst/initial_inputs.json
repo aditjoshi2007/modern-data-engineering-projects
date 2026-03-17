@@ -1,0 +1,156 @@
+{
+  "EMR_Name": "emr_name",
+  "EmrManagedMasterSecurityGroup": "sg-*****************",
+  "EmrManagedSlaveSecurityGroup": "sg-*****************",
+  "ServiceAccessSecurityGroup": "sg-*****************",
+  "AdditionalMasterSecurityGroups": [
+    "sg-*****************",
+    "sg-*****************",
+    "sg-*****************",
+    "sg-*****************"
+  ],
+  "AdditionalSlaveSecurityGroups": [
+    "sg-*****************",
+    "sg-*****************",
+    "sg-*****************",
+    "sg-*****************"
+  ],
+  "ReleaseLabel": "emr-6.10.0",
+    "LogUri": "s3://<s3_bucket>-common-logs/emr/platformlogs/emr/",
+    "AutoTerminationPolicy": {"IdleTimeout":60},
+    "ManagedScalingPolicy":{
+      "ComputeLimits":{
+        "MaximumOnDemandCapacityUnits":18,
+        "UnitType":"InstanceFleetUnits",
+        "MaximumCapacityUnits":18,
+        "MinimumCapacityUnits":9,
+        "MaximumCoreCapacityUnits":3
+       }
+    },
+    "Ec2KeyName": "<ec2_key_name>",
+    "Ec2SubnetId": "subnet-*****************",
+    "JobFlowRole": "<job_flow_role_name>",
+    "ServiceRole": "<service_role_name>",
+    "SecurityConfiguration": "<security_conf_name>",
+    "StepConcurrencyLevel": 10,
+	"BootstrapActions": [{
+                        "Name": "bootstrap-action",
+                        "ScriptBootstrapAction": {
+                                "Path": "s3://<s3-codedeployment-bucket>/deltalake_cdc_data_pipeline/bootstrap-action/bootstrap_action.sh"
+                        }
+                }],
+    "tags": [
+      {
+            "Value": "",
+            "Key": ""
+        }
+    ],
+    "Applications": [
+        {
+            "Name": "Hadoop"
+        },
+        {
+            "Name": "Hive"
+        },
+        {
+            "Name": "Hue"
+        },
+            {
+            "Name": "Livy"
+        },
+        {
+            "Name": "Spark"
+        },
+        {
+            "Name": "Tez"
+        },
+        {
+            "Name": "Presto"
+        },
+        {
+            "Name": "Ganglia"
+        },
+        {
+            "Name": "ZooKeeper"
+        },
+        {
+            "Name": "Pig"
+        },
+        {
+            "Name": "Oozie"
+        },
+        {
+            "Name": "Zeppelin"
+        },
+        {
+            "Name": "Sqoop"
+        }
+    ],
+    "Configurations": [
+      {
+        "Properties": {
+          "maximizeResourceAllocation": "true"
+        },
+        "Classification": "spark"
+      },
+      {
+        "Classification": "spark-env",
+        "Configurations": [
+          {
+            "Classification": "export",
+            "Properties": {
+              "PYSPARK_PYTHON": "/usr/bin/python3"
+            }
+          }
+        ]
+      },
+      {
+        "Classification": "hive-site",
+        "Properties": {
+          "hive.metastore.client.factory.class": "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory"
+        }
+      },
+      {
+        "Classification": "spark-hive-site",
+        "Properties": {
+          "hive.metastore.client.factory.class": "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory"
+        }
+      },
+	  {
+        "Classification":"spark-log4j2",
+        "Properties":{
+            "log4j.rootCategory":"WARN, console"
+        }
+      },
+      {
+        "Classification": "emrfs-site",
+        "Properties": {
+           "fs.s3.enableServerSideEncryption": "true",
+           "fs.s3.serverSideEncryption.kms.keyId": "INSERT_KMS_ARN"
+        },
+        "Configurations": []
+      },
+      {
+        "Properties": {
+          "livy.repl.enable-hive-context": "true",
+          "livy.superusers": "hue"
+        },
+        "Classification": "livy-conf"
+      },
+      {
+        "Properties": {
+          "hadoop.proxyuser.livy.hosts": "*",
+          "hadoop.proxyuser.livy.groups": "*"
+        },
+        "Classification": "core-site"
+      },
+      {
+        "Properties": {
+          "hadoop.kms.proxyuser.livy.users": "*",
+          "hadoop.kms.proxyuser.livy.groups": "*",
+          "hadoop.kms.proxyuser.livy.hosts": "*"
+        },
+        "Classification": "hadoop-kms-site"
+      }
+    ]
+}
