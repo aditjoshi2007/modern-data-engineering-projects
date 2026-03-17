@@ -92,7 +92,7 @@ class S3Manager:
         else:
             service = 'na'
         
-        # Read Aegon from secure
+        # Read secure from secure
         if schema.lower() in ["schema_name_1", "schema_name_2"] or tableOptions.get("use_secure_folder", False):
             landing_bucket = self.s3_landing_bucket_secure
         else:
