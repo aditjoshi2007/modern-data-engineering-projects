@@ -1,0 +1,32 @@
+
+<mxfile host="app.diagrams.net">
+  <diagram name="Outbound Contract Withdrawal Type Architecture">
+    <mxGraphModel grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="2" value="Plan Withdrawal Type Metrics (Latest Snapshot)" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="3" value="Outbound Withdrawal Type View" style="rounded=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="440" y="60" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="4" value="Salesforce Contract" style="rounded=1;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="440" y="160" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5" value="Employer Group Aggregation" style="rounded=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="440" y="260" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="6" style="endArrow=block;" edge="1" parent="1" source="2" target="3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="7" style="endArrow=block;" edge="1" parent="1" source="3" target="4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="8" style="endArrow=block;" edge="1" parent="1" source="3" target="5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

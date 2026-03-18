@@ -1,0 +1,42 @@
+
+<mxfile host="app.diagrams.net">
+  <diagram name="Outbound Source Mapping Architecture">
+    <mxGraphModel grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="2" value="Plan Dimension" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="3" value="Contribution Source" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="4" value="Source Detail (Raw Current)" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5" value="Latest Metrics Snapshot" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="6" value="Outbound Consumption View" style="rounded=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="340" y="160" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="7" value="Salesforce Contract" style="rounded=1;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="340" y="260" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="8" style="endArrow=block;" edge="1" parent="1" source="2" target="6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="9" style="endArrow=block;" edge="1" parent="1" source="3" target="6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="10" style="endArrow=block;" edge="1" parent="1" source="4" target="6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="11" style="endArrow=block;" edge="1" parent="1" source="5" target="6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="12" style="endArrow=block;" edge="1" parent="1" source="6" target="7"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

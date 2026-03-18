@@ -1,0 +1,32 @@
+
+<mxfile host="app.diagrams.net">
+  <diagram name="Outbound Contract Monthly Contribution Architecture">
+    <mxGraphModel grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="2" value="Plan Monthly Contribution Metrics (Latest Snapshot)" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="3" value="Month Calendarization & Zero-Fill" style="rounded=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="4" value="Outbound Monthly Contribution View" style="rounded=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="520" y="110" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5" value="Salesforce Contract" style="rounded=1;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="520" y="210" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="6" style="endArrow=block;" edge="1" parent="1" source="2" target="3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="7" style="endArrow=block;" edge="1" parent="1" source="3" target="4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="8" style="endArrow=block;" edge="1" parent="1" source="4" target="5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
