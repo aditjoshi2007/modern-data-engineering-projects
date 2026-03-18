@@ -1,0 +1,13 @@
+﻿source_fields,destination_fields,source_data_col5
+col1,col1,col1
+col2,col2,boolean
+col3,col3,reference
+col4,col4,string
+col5,col5,picklist
+col6,col6,reference
+col7,col7,reference
+col8,col8,textarea
+col9,col9,string
+col10,col10,double
+col11,col11,phone
+col12,col12,currency
