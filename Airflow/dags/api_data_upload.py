@@ -88,7 +88,7 @@ curr_env = Variable.get('environment')
 curr_mm_yyyy = datetime.strftime(datetime.today() - relativedelta(months=1), '%m_%Y')
 
 # Account number or AWS account alias—replace placeholder and ensure it maps per env if needed.
-acct = <account_no>
+acct = '<account_no>'
 
 # Mapping of report_name -> SQL query template stored in Airflow Variables
 reports_query = Variable.get('reports_query')
@@ -99,18 +99,18 @@ reports_api = Variable.get('reports_api_info')
 reports_api_dict = json.loads(reports_api)
 
 # S3 temp (staging) bucket and prefix, used because Airflow workers may not access RAW directly
-tmp_bucket = <s3_bucket_name>
-tmp_key = <s3_bucket_prefix>  # e.g., 'dag/reports/tmp/'
+tmp_bucket = '<s3_bucket_name>'
+tmp_key = '<s3_bucket_prefix>'  # e.g., 'dag/reports/tmp/'
 
 # S3 RAW bucket/prefix where Redshift UNLOAD writes the per‑report CSVs
-raw_bucket = <s3_bucket_name>
-raw_key = <s3_bucket_prefix>  # e.g., 'domain/reports/report_name/report_name_Report_dd_yyyy'
+raw_bucket = '<s3_bucket_name>'
+raw_key = '<s3_bucket_prefix>'  # e.g., 'domain/reports/report_name/report_name_Report_dd_yyyy'
 
 # Local directory where workers can access/mount CSVs, must be aligned with your deployment
-directory_path = <local_dir_path>
+directory_path = '<local_dir_path>'
 
 # IAM role used by Redshift to UNLOAD to S3
-iam_role = <iam_role_arn>
+iam_role = '<iam_role_arn>'
 
 # DAG display name
 dag_name = 'app_reports'
@@ -448,21 +448,21 @@ def reports():
         """
         try:
             # NOTE: conf file holds the secret name per env; the secret value is fetched via get_secret()
-            with open(f"/usr/local/airflow/dags/conn_details.json", "r") as f:
+            with open(f"<path_to_config_file>", "r") as f:
                 data = json.loads(f.read())
             logging.info(f"✅ Received service account credentials from config file")
 
             # 'env' must be resolvable in scope; if not, replace with curr_env
-            secretname = data[env]["secret_name"]
-            api_url = reports_api_dict[f"token_api_{env}"]
+            secretname = '<secret_name>'
+            api_url = '<api_url>'
 
             # OAuth client credentials & user credentials (as applicable)
             data = {
-                "client_id": reports_api_dict["client_id"],
-                "client_secret": reports_api_dict["client_secret"],
-                "username": reports_api_dict[f"uname_{env}"],
-                "password": get_secret(secretname),  # do NOT log this
-                "grant_type": reports_api_dict["grant_type"],
+                "client_id": "<client_id>",
+                "client_secret": "<client_secret>",
+                "username": "<username>",
+                "password": "<pwd>",  # do NOT log this
+                "grant_type": "<type>",
             }
 
             logging.info(f"📞 Calling Auth Token API URL : {api_url} 🌍")
@@ -587,7 +587,7 @@ def reports():
                         'Name': (None, params['Name']),
                         'fileAttributes': (
                             None,
-                            '{"accountId":"acct_id","reportName":"report_name","reportType":"report_type","reportDate":"report_date"}'
+                            '{"account_id":"acct_id","report_name":"report_name","report_type":"report_type","report_date":"report_date"}'
                             .replace("acct_id", report_id)
                             .replace('report_name', report_name)
                             .replace('report_type', reportType)

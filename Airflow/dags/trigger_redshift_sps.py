@@ -3,7 +3,7 @@
 Trigger Redshift Stored Procedures DAG
 
 This DAG orchestrates execution of Redshift stored procedures for the
-"redshift_layer" using audit-driven batch control tables.
+"redshift_layer" using process-driven batch control tables.
 
 High-level responsibilities:
 - Determine batch date (regular vs ad-hoc)
@@ -48,7 +48,7 @@ DOC_MD = """
 # 🚀 Trigger Redshift Stored Procedures
 
 This DAG controls **batch execution of Redshift stored procedures** using
-an audit-driven dependency model.
+an process-driven dependency model.
 
 ## Swimlanes
 - **Orchestration:** Apache Airflow
@@ -62,26 +62,21 @@ an audit-driven dependency model.
 ## Key Capabilities
 - Dependency-aware SP execution
 - Deadlock-safe retries
-- Audit table integration
+- process table integration
 - SNS alerts + S3 run manifests
 """
 
 # Set up static variables for DAG
 local_tz=pendulum.timezone("America/Chicago")
-curr_env=Variable.get('environment')
-sleep_time=Variable.get('sleep_time')
-sleep_iteration=Variable.get('sleep_iteration')
-get_batch_run=Variable.get('ret_get_batch_run', default_var='get_batch_run')
-vacuum=Variable.get('vacuum')
-act_no=Variable.get('account_no')
-all_accounts=json.loads(act_no)
-account_no=all_accounts[curr_env]
-email_content=Variable.get('success_email_html_template')
-email_subject=Variable.get('success_email_subject')
+curr_env="env"
+sleep_time="seconds"
+sleep_iteration="iter_count"
+vacuum="True/False"
+account_no="account_no"
 adhoc_run=Variable.get('adhoc_run')
 dag_name='trigger_redshift_sps'
 alert_email_list=['ops@email.com']
-aws_region='us-east-1'
+aws_region="aws_region"
 sns_arn=f"<sns_arn>"
 schedule_interval=None
 
@@ -140,7 +135,7 @@ def trigger_redshift_sps():
         response=client.publish(
             TopicArn=f"<topic_arn>",
             Message=custom_message,
-            Subject="Airflow: " + dag_name + "; Env: " + curr_env + " - " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            Subject="Airflow Subject"
         )
         return response
 
@@ -155,12 +150,10 @@ def trigger_redshift_sps():
             s3_client=boto3.client('s3', config=config)
             json_str=json.dumps(json_data, indent=2, default=str)
             json_body_bytes=json_str.encode('utf-8')
-            file_name=f'{process_date}_{status}_{datetime.now().strftime("%Y-%m-%d-%H:%M:%S")}'
+            file_name='<file_name>'
             curated_bucket=f'<s3_curated_bucket>'
-            curated_path=f'<s3_curated_prefix>/{dag_name}/load_date={process_date}/{file_name}.json'
+            curated_path=f'<s3_curated_prefix>'
             s3_client.put_object(Body=json_body_bytes, Bucket=curated_bucket, Key=curated_path)
-            print(f'process_date: {process_date} \nfile_name: {file_name} \ncurated_bucket: {curated_bucket} \ncurated_path: {curated_path}')
-            print(f'written to s3: \n {json_data} \n Bucket: {curated_bucket} \n Path: {curated_path}')
             return curated_bucket, curated_path, file_name
         except:
             send_notification(aws_region, sns_arn,
@@ -187,28 +180,13 @@ def trigger_redshift_sps():
         postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         cur=conn.cursor()
-
-        select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
-        cur.execute(select_stmt)
-
-        fetch_batch_date=[doc for doc in cur]
-        batch_date=fetch_batch_date[0][0]
-
-        if adhoc_run != "none":
-            sp_stmt="CALL <audit_schema>." + get_batch_run + "('batch_dt','redshift_layer','adhoc','records');".replace(
-                'batch_dt', adhoc_run)
-        else:
-            sp_stmt="CALL schema_name." + get_batch_run + "('batch_dt','redshift_layer','regular','records');".replace(
-                'batch_dt', batch_date.strftime('%Y-%m-%d'))
         cur.execute(sp_stmt)
         my_cursor=conn.cursor("records")
         result=my_cursor.fetchall()
         result.sort(key=lambda x: (x[4], x[7]))
 
-        audit_status_insert="insert into <audit_schema>.batch_run (prcs_nme,prcs_id,status, batch_dt, end_dttm) select 'redshift_layer', (select prcs_id from <audit_schema>.prcs where prcs_nme ='redshift_layer'), 'Running', cast('audit_batch_dt' as date), null;".replace(
-            'audit_batch_dt', batch_date.strftime('%Y-%m-%d'))
-        print(f"*****************Cursor is executing: {audit_status_insert}")
-        cur.execute(audit_status_insert)
+        print(f"*****************Cursor is executing: {status_insert}")
+        cur.execute(status_insert)
         conn.commit()
         conn.close()
 
@@ -228,19 +206,11 @@ def trigger_redshift_sps():
         try:
             return sp_groups
         except:
-            process_date=batch_date.strftime('%Y-%m-%d')
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["ProcessDate"] = process_date
-            redshift_layer_info_json["JobName"]=dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
+            print(f'redshift_layer_info_json \n ============\n {info_json} \n============')
             send_notification(aws_region, sns_arn,
-                              f'An error occurred at task: get_table_category \n {redshift_layer_info_json} '
+                              f'An error occurred at task: get_table_category \n} '
                               f'\nPlease check DAG; Below is the error: \n, {traceback.format_exc}', curr_env)
-            file_name=write_to_s3('failed',  process_date, redshift_layer_info_json)
+            file_name=write_to_s3('failed',  process_date, info_json)
             print("file_name: ", {file_name})
             print(f'Error occurred:\n', traceback.format_exc())
             exit(1) 
@@ -258,25 +228,15 @@ def trigger_redshift_sps():
             postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
-
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
             cur.execute(select_stmt)
 
             fetch_batch_date=[doc for doc in cur]
             batch_date=fetch_batch_date[0][0]
-            process_date=batch_date.strftime('%Y-%m-%d')
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["ProcessDate"] = process_date
-            redshift_layer_info_json["JobName"]=dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
+            print(f'info_json \n ============\n {info_json} \n============')
             send_notification(aws_region, sns_arn,
-                              f'An error occurred at task: get_table_category \n {redshift_layer_info_json} '
+                              f'An error occurred at task: get_table_category \n {info_json} '
                               f'\nPlease check DAG; Below is the error: \n, {traceback.format_exc}', curr_env)
-            file_name=write_to_s3('failed',  process_date, redshift_layer_info_json)
+            file_name=write_to_s3('failed',  process_date, info_json)
             print("file_name: ", {file_name})
             print(f'Error occurred:\n', traceback.format_exc())
             exit(1)
@@ -294,7 +254,7 @@ def trigger_redshift_sps():
             for i in sp_batch_list:
                 trigger_sp_condition=False
                 if i[5] != 'COMPLETED':
-                    audit_dict=json.loads(i[8])
+                    process_dict=json.loads(i[8])
                     if adhoc_run != "none":
                         postgres=PostgresHook(postgres_conn_id="redshift-connection")
                         conn=postgres.get_conn()
@@ -319,13 +279,12 @@ def trigger_redshift_sps():
                         max_tries=0
                         sp_stmt=i[2].replace('batch_dt', f"'{i[3]}'")
                         if i[9] is not None:
-                            dependency_check_stmt="CALL <audit_schema>.<dependency_check_sp>('{\"prcs_job_id\": \"pid\", \"layer\": \"redshift_layer\"}', 'batch_dt','records');".replace(
-                                'batch_dt', i[3]).replace('pid', i[9])
+                            dependency_check_stmt="CALL <dependency_check_sp>"
                             print(f"Dependency call statement is: {dependency_check_stmt}")
                         else:
                             dependency_check_stmt="None"
                             print(f"Dependency call statement is: {dependency_check_stmt}")
-                        if audit_dict["dependency_check"].upper() == "TRUE" and dependency_check_stmt != "None":
+                        if process_dict["dependency_check"].upper() == "TRUE" and dependency_check_stmt != "None":
                             while not trigger_sp_condition:
                                 dependency_check_result=dependency_check(dependency_check_stmt)
                                 print(f"*****************Dependency check result is : {str(dependency_check_result)}")
@@ -338,7 +297,7 @@ def trigger_redshift_sps():
                                             cur.execute(sp_stmt)
                                             execute_condition=True
                                         except errors.UndefinedTable as e:
-                                            if 'relation "redshift_layer_pjel' in e:
+                                            if 'relation "redshift_layer' in e:
                                                 print(
                                                     f"*******************SP encountered deadlock. Current try is : {execution_counter}")
                                                 time.sleep(60)
@@ -375,7 +334,7 @@ def trigger_redshift_sps():
                                         raise Exception(f"Found Exception: {msg}")
                                         trigger_sp_condition=True
                         else:
-                            d_check=str(audit_dict["dependency_check"])
+                            d_check=str(process_dict["dependency_check"])
                             print(f"Dependency check is {d_check}. Cursor is executing SP: {sp_stmt}")
                             execute_condition=False
                             execution_counter=0
@@ -384,7 +343,7 @@ def trigger_redshift_sps():
                                     cur.execute(sp_stmt)
                                     execute_condition=True
                                 except errors.UndefinedTable as e:
-                                    if 'relation "redshift_layer_pjel' in e:
+                                    if 'relation "redshift_layer' in e:
                                         print(
                                             f"*******************SP encountered deadlock. Current try is : {execution_counter}")
                                         time.sleep(60)
@@ -414,23 +373,13 @@ def trigger_redshift_sps():
             postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
             cur.execute(select_stmt)
             fetch_batch_date=[doc for doc in cur]
-            batch_date=fetch_batch_date[0][0]
-            process_date=batch_date.strftime('%Y-%m-%d')
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["ProcessDate"] = process_date
-            redshift_layer_info_json["JobName"]=dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
+            print(f'info_json \n ============\n {info_json} \n============')
             send_notification(aws_region, sns_arn,
-                              f'An error occurred at task: get_table_category \n {redshift_layer_info_json} '
+                              f'An error occurred at task: get_table_category \n {info_json} '
                               f'\nPlease check DAG; Below is the error: \n, {traceback.format_exc}', curr_env)
-            file_name=write_to_s3('failed',  process_date, redshift_layer_info_json)
+            file_name=write_to_s3('failed',  process_date, info_json)
             print("file_name: ", {file_name})
             print(f'Error occurred:\n', traceback.format_exc())
             exit(1)   
@@ -447,19 +396,11 @@ def trigger_redshift_sps():
             postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
-
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
             cur.execute(select_stmt)
 
             fetch_batch_date=[doc for doc in cur]
             batch_date=fetch_batch_date[0][0]
 
-            if adhoc_run != "none":
-                sp_stmt="CALL <audit_schema>." + get_batch_run + "('batch_dt','redshift_layer','adhoc','records');".replace(
-                    'batch_dt', adhoc_run)
-            else:
-                sp_stmt="CALL <audit_schema>." + get_batch_run + "('batch_dt','redshift_layer','regular','records');".replace(
-                    'batch_dt', batch_date.strftime('%Y-%m-%d'))
             cur.execute(sp_stmt)
             my_cursor=conn.cursor("records")
             result=my_cursor.fetchall()
@@ -468,143 +409,33 @@ def trigger_redshift_sps():
                 if i[5] == 'COMPLETED':
                     tables_run.append(i[1])
             
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
             cur.execute(select_stmt)
             fetch_batch_date=[doc for doc in cur]
-            batch_date=fetch_batch_date[0][0]
-            process_date=batch_date.strftime('%Y-%m-%d')
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["ProcessDate"] = process_date
-            redshift_layer_info_json["JobName"]=dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Success"
-            redshift_layer_info_json["FailureReason"]=""
-            redshift_layer_info_json["Tables"] = tables_run
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
-            return redshift_layer_info_json
+            
+            print(f'info_json \n ============\n {info_json} \n============')
+            return info_json
 
         except:
             postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
             cur.execute(select_stmt)
-            fetch_batch_date=[doc for doc in cur]
-            batch_date=fetch_batch_date[0][0]
-            process_date=batch_date.strftime('%Y-%m-%d')
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["ProcessDate"] = process_date
-            redshift_layer_info_json["JobName"] = dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
+            
+            print(f'info_json \n ============\n {info_json} \n============')
             send_notification(aws_region, sns_arn,
-                              f'An error occurred at task: get_table_category \n {redshift_layer_info_json} '
+                              f'An error occurred at task: get_table_category \n {info_json} '
                               f'\nPlease check DAG; Below is the error: \n, {traceback.format_exc}', curr_env)
-            file_name=write_to_s3('failed',  process_date, redshift_layer_info_json)
+            file_name=write_to_s3('failed',  process_date, info_json)
             print("file_name: ", {file_name})
             print(f'Error occurred:\n', traceback.format_exc())
             exit(1)
-
-    @task
-    def set_config_date(**kwargs):
-        """
-        Queries Postgres and returns a cursor to the results.
-        """
-        ti: TaskInstance=kwargs["ti"]
-        dag_run: DagRun=ti.dag_run
-        json1=Variable.get("redshift_layer_json")
-        json2=json.loads(json1)
-        redshift_layer_info_json=copy.copy(json2)
-        try:
-            postgres=PostgresHook(postgres_conn_id="redshift-connection")
-            conn=postgres.get_conn()
-            conn.autocommit=True
-            cur=conn.cursor()
-
-            select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
-            cur.execute(select_stmt)
-
-            fetch_batch_date=[doc for doc in cur]
-            date_str_new=(fetch_batch_date[0][0] + timedelta(1)).strftime('%Y-%m-%d')
-
-            batch_date=fetch_batch_date[0][0]
-            audit_status_update="update <audit_schema>.<batch_run> set status = 'Completed', end_dttm= getdate() where run_id = (select max(run_id) as run_id from <audit_schema>.<batch_run> where prcs_nme='redshift_layer' and batch_dt ='audit_batch_dt' and status = 'Running');".replace(
-                'audit_batch_dt', batch_date.strftime('%Y-%m-%d'))
-            print(f"*****************Cursor is executing: {audit_status_update}")
-            cur.execute(audit_status_update)
-
-            if adhoc_run != "none":
-                update_stmt='''update <audit_schema>.<batch_date_table> set addi_info = replace(replace(addi_info,'adhoc','regular'),JSON_EXTRACT_PATH_TEXT(addi_info,'reset_dt'),''), batch_date= JSON_EXTRACT_PATH_TEXT(addi_info,'reset_dt')::date where JSON_EXTRACT_PATH_TEXT(addi_info,'layer')='redshift_layer';'''
-            else:
-                update_stmt='''update <audit_schema>.<batch_date_table> set batch_date ='batch_dt' where JSON_EXTRACT_PATH_TEXT(addi_info,'layer')='redshift_layer';'''
-            cur.execute(update_stmt.replace('batch_dt', date_str_new))
-            conn.commit()
-            conn.close()
-
-            return f"***** Updated batch_date insert statement : {update_stmt.replace('batch_dt', date_str_new)}"
-        except:
-            get_table_list_result=ti.xcom_pull(task_ids='get_table_list', key='return_value')
-            redshift_layer_info_json=json.loads(get_table_list_result)
-            process_date = redshift_layer_info_json["ProcessDate"]
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["JobName"]=dag_name
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
-            send_notification(aws_region, sns_arn,
-                              f'An error occurred at task: get_table_category \n {redshift_layer_info_json} '
-                              f'\nPlease check DAG; Below is the error: \n, {traceback.format_exc}', curr_env)
-            file_name=write_to_s3('failed',  process_date, redshift_layer_info_json)
-            print("file_name: ", {file_name})
-            print(f'Error occurred:\n', traceback.format_exc())
-            exit(1) 
 
     @task(task_id="send_sns_write_to_s3")
-    def send_sns_write_to_s3(**kwargs):  # send_sns(**kwargs):
-        ti: TaskInstance=kwargs["ti"]
-        dag_run: DagRun=ti.dag_run
-        json1=Variable.get("redshift_layer_json")
-        json2=json.loads(json1)
-        redshift_layer_info_json=copy.copy(json2)
-
-        try:
-            set_config_date_result=ti.xcom_pull(task_ids='get_table_list', key='return_value')
-            redshift_layer_info_json=json.loads(set_config_date_result)
-            process_date = redshift_layer_info_json["ProcessDate"]
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Success"
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
-            send_notification(aws_region, sns_arn, f'{redshift_layer_info_json}', curr_env)
-            file_name=write_to_s3('success', process_date, redshift_layer_info_json)
-            return redshift_layer_info_json, file_name
-        except:
-            set_config_date_result=ti.xcom_pull(task_ids='get_table_list', key='return_value')
-            redshift_layer_info_json=json.loads(set_config_date_result)
-            end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            process_date = redshift_layer_info_json["ProcessDate"]
-            redshift_layer_info_json["JobEndDateTime"]=end_time
-            redshift_layer_info_json["Status"]="Failed"
-            redshift_layer_info_json["FailureReason"]=traceback.format_exc()
-            redshift_layer_info_json=json.dumps(redshift_layer_info_json, indent=2)
-            print(f'redshift_layer_info_json \n ============\n {redshift_layer_info_json} \n============')
-            send_notification(aws_region, sns_arn,
-                            f'An error occurred at task: get_sp_list \n {redshift_layer_info_json} \nPlease check DAG; Below is the error: \n, {traceback.format_exc()}',
-                              curr_env)
-            file_name=write_to_s3('failed', process_date, redshift_layer_info_json)
-            print("file_name: ", {file_name})
-            print(f'Error occurred:\n', traceback.format_exc())
-            exit(1)
-
+    def send_sns_write_to_s3(**kwargs):  
+        # send_sns(**kwargs):
+        
     group_results=get_batch.partial().expand(sp_groups=get_sp_list(adhoc_run))
-    trigger_sp_batch.partial().expand(sp_batch_list=group_results) >> get_table_list(adhoc_run) >> set_config_date() >> send_sns_write_to_s3()
+    trigger_sp_batch.partial().expand(sp_batch_list=group_results) >> get_table_list(adhoc_run) >> send_sns_write_to_s3()
 
 
 dag=trigger_redshift_sps()

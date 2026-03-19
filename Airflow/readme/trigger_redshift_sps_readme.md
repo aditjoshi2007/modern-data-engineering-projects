@@ -10,7 +10,7 @@ Redshift stored procedure execution**.
 - **Storage:** Amazon S3 (run manifests)
 
 ## Features
-- Audit-driven batch control
+- process-driven batch control
 - Dependency checks between procedures
 - Deadlock-safe retries
 - SNS alerts + S3 run metadata

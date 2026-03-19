@@ -15,7 +15,7 @@ This DAG is scheduled to trigger based on completion of daily ingestion cycle an
 ## 🧠 What This DAG Does
 For each configured table/job, the DAG:
 
-1. Reads **process configuration** from Airflow Variables and audit tables
+1. Reads **process configuration** from Airflow Variables
 2. Validates unload and AppFlow configuration
 3. Groups jobs by execution sequence
 4. Unloads data from **Redshift → S3**
@@ -32,7 +32,7 @@ This DAG is scheduled to **trigger based** on completion of daily ingestion cycl
 Trigger manually via:
 **Airflow UI → Trigger DAG**
 
-No runtime config is required in the UI—execution is fully driven by **Airflow Variables and audit tables**.
+No runtime config is required in the UI—execution is fully driven by **Airflow Variables**.
 
 ---
 """
@@ -63,18 +63,18 @@ from airflow.operators.python import get_current_context
 # Variable Name: redshift_to_salesforce_config
 #
 # {
-#   "prcs_nme": "process_name",          # Required: Process name from <audit_schema>.<prcs_table>
+#   "process_name": "process_name",          # Required: Process name
 #   "table_name": ""                     # Optional: Specific table name to unload(e.g., "table1, table2")
 #	"batch_dt": "2025-07-15",            # Optional: Batch date to log execution (defaults to sysdate if not given)
-#	"run_seq_start": 0,                  # Optional: Sequence number to start from in prcs_job
+#	"run_seq_start": 0,                  # Optional: Sequence number to start at
 #	"run_seq_end": 5                     # Optional: Sequence number to end at
 # }
 #
 #
-# The actual config for each table comes from '<audit_schema>.<prcs_job_table>.additional_info' JSON:
+# The actual config for each table comes from process table JSON:
 # {
-#	"table_name": "table1",		         			# ✅ Required: Table name to be unloaded
-#	"src_schema_name": "<rawcurrent_schema>",       			# ✅ Required: Source schema name in Redshift
+#	"table_name": "table1",		         			    # ✅ Required: Table name to be unloaded
+#	"src_schema_name": "<schema_name>",       			# ✅ Required: Source schema name in Redshift
 #   "unload_to_s3": "true",                             # Optional: To enable and disable unloads in case of failovers
 #   "unload": {
 #       "bucket": "my-bucket",                			# ✅ Required: S3 bucket name
@@ -87,17 +87,17 @@ from airflow.operators.python import get_current_context
 #		"header": true,                       			# Optional: (CSV only): Whether to include column headers
 #		"addquotes": true,                    			# Optional: (CSV only): Wrap each field in double quotes
 #       "parallel": "OFF",         			  			# Optional: 'ON' (default) or 'OFF' - OFF generates a single file
-#       "iam_role_arn": arn:aws:iam::xxx:role/my-role,  # ✅ Required: Redshift unload role
+#       "iam_role_arn": my-role,                        # ✅ Required: Redshift unload role
 #		"compression": "gzip",                          # Optional: Compression format ('gzip' for CSV, 'snappy' for Parquet)
 #		"manifest": false                               # Optional: Whether to generate manifest file
 #   },
-#   "query": "SELECT * FROM <rawcurrent_schema>.table1"     # ✅ Required: Query to run for unloading
+#   "query": "SELECT * FROM table1"                     # ✅ Required: Query to run for unloading
 #   "custom_headers": ["Col1", "Col2", "Col3"]          # Optional: Override column headers in csv
 # },
 #    "trigger_appflow": "true",                         # Optional: To enable and disable Appflow trigger in case of failovers
 #    "appflow": {
 #        "flow_name": "",                               # ✅ Required: Name of the related Appflow
-#        "description": "run appflow wx"                # Optional: Appflow description
+#        "description": "run appflow"                   # Optional: Appflow description
 #    }
 # }
 
@@ -142,34 +142,18 @@ def redshift_to_salesforce_reports():
     @task()
     def get_config():
         config = json.loads(Variable.get("redshift_to_salesforce_config"))
-        prcs_nme = config["prcs_nme"]
+        process_name = config["process_name"]
         table_filter = [tbl.strip().lower() for tbl in config.get("table_name", "").split(",") if tbl.strip()] or []
 
         pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         cur = conn.cursor()
 
-        # Get batch date from batch_date_table
-        cur.execute("SELECT batch_date, addi_info FROM <audit_schema>.<batch_date_table>")
-        batch_dt = None
-        for row in cur.fetchall():
-            addi_info = json.loads(row[1])
-            if addi_info.get("layer") == prcs_nme:
-                batch_dt = row[0]
-                break
-        if not batch_dt:
-            raise Exception(f"No matching layer found in config_data for {prcs_nme}")
+        # Get batch date
 
-        # Get prcs_id from <audit_schema>.<prcs_table>
-        cur.execute("SELECT prcs_id FROM <audit_schema>.<prcs_table> WHERE prcs_nme = %s", (prcs_nme,))
-        result = cur.fetchone()
-        if not result:
-            raise Exception(f"prcs_id not found for {prcs_nme}")
-        prcs_id = result[0]
-        logging.info(f"Executing job query with prcs_id={prcs_id}, batch_dt={batch_dt}")
-        # Use the get_batch_run_p SP to get job metadata??
-        cur.execute( f" SELECT pj.<prcs_job_table>_id,pj.<prcs_table>_tbl_nme,pj.additional_info,pj.<prcs_job_table>_exec_seq_no,pj.data_flow_no FROM <audit_schema>.<prcs_job_table> pj WHERE pj.is_active = 'Y' AND pj.<prcs_table>_id = {prcs_id} AND NOT EXISTS (SELECT 1 FROM <audit_schema>.<redshift_to_salesforce_pjel> pjel WHERE pj.<prcs_job_table>_id  = pjel.<prcs_job_table>_id AND pjel.status = 'END' AND pjel.additional_info LIKE '%Completed%' AND batch_dt = '{batch_dt}')")
-        jobs = cur.fetchall()
+        # Get id from process table
+        logging.info(f"Executing job query with process_id={id}, batch_dt={batch_dt}")
+        # Use SP to get job metadata??
         logging.info(f"Number of jobs fetch: {len(jobs)}")
         for i, row in enumerate(jobs):
             logging.info(f"Row {i} length: {len(row)} | Content: {row}")
@@ -182,15 +166,7 @@ def redshift_to_salesforce_reports():
             try:
                 if not table_filter or (len(row) > 1 and row[1].strip().lower() in table_filter):
                     filtered_jobs.append({
-                        "prcs_job_id": row[0],
-                        "prcs_tbl_nme": row[1],
-                        "additional_info": row[2],
-                        "exec_seq": row[3],
-                        "data_flow_no": row[4],
-                        "excn_log_id": int(batch_dt.strftime('%Y%m%d%H%M%S')),
-                        "prcs_id": prcs_id,
-                        "batch_dt": batch_dt,
-                        "prcs_nme": prcs_nme
+                        "process_name": process_name
                     })
             except IndexError as e:
                 logging.error(f"IndexError while processing row: {row} | Error: {e}")
@@ -204,13 +180,9 @@ def redshift_to_salesforce_reports():
         logging.info("\n====== Config Validation Summary ======")
         for job in job_list:
             try:
-                info = json.loads(job["additional_info"])
-                unload_cfg = info.get("unload", {})
-                tbl_name = info.get("table_name", "UNKNOWN")
-                prcs_job_id = job.get("prcs_job_id", "N/A")
-                exec_seq = job.get("exec_seq", "N/A")
+                info = json.loads(job["info"])
 
-                logging.info(f"\n Validating Job ID:  {prcs_job_id} | Table: {tbl_name} | Group: {exec_seq}")
+                logging.info(f"\n Validating Job ID:  {id} | Table: {tbl_name} | Group: {group}")
 
                 required_keys = ["bucket", "key", "data_format", "iam_role_arn", "query"]
                 for k in required_keys:
@@ -227,7 +199,7 @@ def redshift_to_salesforce_reports():
                 else:
                     raise ValueError(f"Invalid data_format: {fmt} for table {info.get('table_name')}")
             except Exception as e:
-                raise AirflowException(f"Validation failed for job {job['prcs_job_id']}: {e}")
+                raise AirflowException(f"Validation failed for job {job['job_id']}: {e}")
         logging.info("==========================================================================\n")
 
     @task()
@@ -240,29 +212,28 @@ def redshift_to_salesforce_reports():
         conn.autocommit = True
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO <audit_schema>.batch_run (prcs_nme, prcs_id, status, batch_dt, start_dttm)
-            VALUES (%s, %s, %s, %s, getdate())
-        """, (row['prcs_nme'], row['prcs_id'], 'Running', row['batch_dt']))
+            sql
+        """)
 
     @task()
     def group_jobs(job_list):
-        job_list.sort(key=lambda x: (x["exec_seq"], x.get("data_flow_no", 0)))
+        job_list.sort(key=lambda x: (x["exec_seq"], x.get("execution_number", 0)))
         groups = []
         logging.info("Total active jobs received for grouping: %d", len(job_list))
-        logging.info(f"\n================= Grouping Jobs by prcs_job_seq_no and data_flow_no =================")
+        logging.info(f"\n================= Grouping Jobs =================")
 
         for key, group in groupby(job_list, lambda x: x["exec_seq"]):
             group_list = list(group)
-            logging.info(f"\n▶️️️ Group: prcs_job_seq_no = {key}")
+            logging.info(f"\n▶️️️ Group: job_seq_no = {key}")
             for job in group_list:
-                prcs_job_id = job["prcs_job_id"]
-                data_flow_no = job["data_flow_no"]
+                job_id = job["job_id"]
+                execution_number = job["execution_number"]
                 try:
-                    info = json.loads(job["additional_info"])
+                    info = json.loads(job["info"])
                     tbl_name = info.get("table_name", "<unknown>")
                 except Exception:
                     tbl_name = "<parser_error"
-                logging.info(f"  - PRCS_JOB_ID {prcs_job_id} | Data Flow No {data_flow_no} | Table: {tbl_name}")
+                logging.info(f"  - JOB_ID {job_id} | execution_number {execution_number} | Table: {tbl_name}")
             groups.append(group_list)
         logging.info("✅ Finished grouping jobs.\n")
         return groups
@@ -271,8 +242,8 @@ def redshift_to_salesforce_reports():
     def log_job_group(job_group):
         tables = []
         for job in job_group:
-            job_id = job['prcs_job_id']
-            tbl_name = json.loads(job['additional_info']).get('table_name', 'UNKNOWN')
+            job_id = job['job_id']
+            tbl_name = json.loads(job['info']).get('table_name', 'UNKNOWN')
             tables.append(f"{tbl_name} (JOB ID: {job_id}")
         logging.info("\n====== Executing Mapped Task Group ======")
         logging.info("Mapped Task includes the following jobs:")
@@ -294,26 +265,24 @@ def redshift_to_salesforce_reports():
         for job in job_group:
             excn_log_id = datetime.now().strftime('%Y%m%d%H%M%S')  # Unique per job
             conn.notices.clear()                                   # Clear Redshift notices before each job
-            job_id = job["prcs_job_id"]
-            info = json.loads(job["additional_info"])
+            job_id = job["job_id"]
+            info = json.loads(job["info"])
             tbl = info.get("table_name")
-            schema = info.get("src_schema_name", "unknown")
+            schema = info.get("schema_name", "unknown")
             full_tbl = f"{schema}.{tbl}"
             batch_dt = job["batch_dt"]
             ###excn_log_id  = excn_log_seq_no
             exec_seq = job.get("exec_seq", "N/A")
-            data_flow_no = job.get("data_flow_no", "N/A")
+            execution_number = job.get("execution_number", "N/A")
             logging.info(f"EXCN LOG ID: {excn_log_id}")
 
-            logging.info(f"\n▶️ Exec Seq: {exec_seq}) | PRCS JOB ID: {job_id} | Data Flow No: {data_flow_no} | Table: {full_tbl}")
+            logging.info(f"\n▶️ Exec Seq: {exec_seq}) | JOB ID: {job_id} | Data Flow No: {execution_number} | Table: {full_tbl}")
 
             def log(status_val, msg):
                 logging.info(f"🔷 Log Status Val: {status_val} | Msg: {msg}")
                 cur.execute("""
-                    INSERT INTO <audit_schema>.<redshift_to_salesforce_pjel>
-                    (prcs_job_excn_log_id, prcs_job_id, status, batch_dt, additional_info)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (excn_log_id, job_id, status_val, batch_dt, json.dumps({"tbl": full_tbl, "msg": msg})))
+                    sql
+                """)
 
             try:
                 log("START", "Process Initiated")
@@ -344,10 +313,10 @@ def redshift_to_salesforce_reports():
                                 logging.info(f"🗑️ Deleting file(s): {key}")
                                 s3_client.delete_object(Bucket=bucket, Key=key)
 
-                    logging.info(f"📦 Calling unload_to_s3_sp for prcs_job_id: {job_id}")
+                    logging.info(f"📦 Calling unload_to_s3_sp for job_id: {job_id}")
                     sp_schema = info.get("src_schema_name", "public")
-                    cur.execute(f"CALL {sp_schema}.unload_to_s3_sp({job_id})")
-                    logging.info(f"📦 CALL {sp_schema}.unload_to_s3_sp({job_id}) is being processed for prcs_job_id: {job_id}")
+                    cur.execute(f"CALL sp")
+                    logging.info(f"📦 CALL sp is being processed for job_id: {job_id}")
 
                     # Fetch row count from Redshift notice
                     notices = conn.notices
@@ -405,22 +374,12 @@ def redshift_to_salesforce_reports():
 
     @task()
     def update_batch_date(job_list):
-        if not job_list:
-            return
-        prcs_nme = job_list[0]["prcs_nme"]
         pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         cur = conn.cursor()
         cur.execute("""
-            UPDATE <audit_schema>.<batch_date_table>
-            SET batch_date = batch_date + 1
-            WHERE json_extract_path_text(addi_info,'layer') = %s
-        """, (prcs_nme,))
-        cur.execute("""
-            UPDATE <audit_schema>.batch_run
-            SET status = 'Completed', end_dttm = getdate()
-            WHERE prcs_nme = %s AND status = 'Running'
-        """, (prcs_nme,))
+            sql
+        """)
         conn.commit()
         cur.close()
         conn.close()

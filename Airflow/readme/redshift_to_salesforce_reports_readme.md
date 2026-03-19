@@ -4,19 +4,19 @@
 The **Redshift to Salesforce Reports** DAG is triggered after execution of daily ingestion cycle in Airflow. This pipeline exports reporting data from **Amazon Redshift** to **Salesforce**.  
 It supports controlled batch execution, configurable unloads to **Amazon S3**, and optional **AWS AppFlow** triggers for Salesforce ingestion.
 
-This DAG is designed for **audit‑driven, repeatable, and failover‑safe reporting workflows**.
+This DAG is designed for **process‑driven, repeatable, and failover‑safe reporting workflows**.
 
 ---
 
 ## 🧠 What This DAG Does
 For each configured job, the DAG:
 
-1. Reads execution configuration from **Airflow Variables** and **audit tables**
+1. Reads execution configuration from **Airflow Variables** and **process tables**
 2. Validates unload and AppFlow configuration
 3. Groups jobs by execution sequence
 4. Unloads data from **Redshift → S3**
 5. Optionally triggers **AWS AppFlow → Salesforce**
-6. Writes detailed audit logs (START / END / FAILED)
+6. Writes detailed process logs (START / END / FAILED)
 7. Updates batch dates
 8. Sends success notifications
 
@@ -28,7 +28,7 @@ This DAG **does not run on a schedule**.
 Trigger it manually from the **Airflow UI → Trigger DAG**.
 
 > ✅ No runtime JSON is required in the UI.  
-> Execution is fully driven by Airflow Variables and audit metadata.
+> Execution is fully driven by Airflow Variables and process metadata.
 
 ---
 
@@ -48,23 +48,6 @@ redshift_to_salesforce_config
   "run_seq_start": 0,
   "run_seq_end": 5
 }
-```
-
-### Field Description
-| Field | Required | Description |
-|------|---------|-------------|
-| prcs_nme | ✅ | Process name defined in audit tables |
-| table_name | ❌ | Comma-separated list of tables to process |
-| batch_dt | ❌ | Overrides system batch date |
-| run_seq_start | ❌ | Start execution from this sequence |
-| run_seq_end | ❌ | End execution at this sequence |
-
----
-
-## 🗂️ Job-Level Configuration (Audit Table)
-Each job's execution logic is read from:
-```
-<audit_schema>.<prcs_job_table>.additional_info
 ```
 
 ### Example
@@ -125,7 +108,7 @@ send_email
 | Parallel OFF (single file) | ✅ |
 | Automatic S3 cleanup | ✅ |
 
-Row counts are extracted directly from **Redshift UNLOAD notices** and logged to audit tables.
+Row counts are extracted directly from **Redshift UNLOAD notices** and logged to process tables.
 
 ---
 
@@ -139,11 +122,9 @@ This step can be safely disabled during **failovers or reprocessing**.
 
 ---
 
-## 🧾 Audit & Batch Tracking
+## 🧾 process & Batch Tracking
 
-The DAG writes detailed execution metadata to:
-- `<audit_schema>.batch_run`
-- `<audit_schema>.redshift_to_salesforce_pjel`
+The DAG writes detailed execution metadata
 
 Tracked attributes include:
 - Execution status

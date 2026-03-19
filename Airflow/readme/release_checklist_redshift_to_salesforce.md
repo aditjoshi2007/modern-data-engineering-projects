@@ -8,7 +8,7 @@
 
 ## Configuration Validation
 - [ ] Airflow Variable `redshift_to_salesforce_config` validated
-- [ ] Audit table job configs reviewed
+- [ ] process table job configs reviewed
 - [ ] IAM role permissions verified
 
 ## Non‑Prod Validation
@@ -16,7 +16,7 @@
 - [ ] S3 unload verified
 - [ ] Row counts validated
 - [ ] AppFlow trigger tested (if enabled)
-- [ ] Audit tables updated correctly
+- [ ] process tables updated correctly
 
 ## Prod Readiness
 - [ ] Backfill / re‑run plan approved

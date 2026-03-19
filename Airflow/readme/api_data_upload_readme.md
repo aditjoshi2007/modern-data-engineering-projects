@@ -17,9 +17,9 @@ Redshift
    ↓
 UNLOAD CSV per report
    ↓
-S3 RAW bucket (partitioned by report & date)
+S3 Gold layer bucket (partitioned by report & date)
    ↓             (copied & normalized)
-S3 TMP bucket  ————————————————→  AMA/Partner REST API
+S3 TMP Bronze layer bucket  ————————————————→  AMA/Partner REST API
 ```
 
 ### Key Components
@@ -144,7 +144,7 @@ diagrams/png/reports_processing_dag.png
 
 ## 📝 Notes
 
-- For us-east-1, you can create S3 buckets without a `CreateBucketConfiguration`. For other regions, supply a `LocationConstraint`.
+- For your aws region, you can create S3 buckets without a `CreateBucketConfiguration`. For other regions, supply a `LocationConstraint`.
 - The waiter leverages S3 **HEAD** requests via boto3's built-in waiter and is robust across common eventual-consistency scenarios.
 
 ---

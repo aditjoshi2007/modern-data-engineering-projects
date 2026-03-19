@@ -1,2 +1,0 @@
-#Airflow Variable Key Value for email notifications
-Airflow alert: <Dag ID: {{ti.dag_id}} {{ti.start_date}} [success]>
