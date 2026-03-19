@@ -234,8 +234,8 @@ def reports():
         """
 
         report_ids = []
-        # PostgresHook points to Redshift (configured via Airflow connection 'redshift-warehouse')
-        postgres = PostgresHook(postgres_conn_id="redshift-warehouse")
+        # PostgresHook points to Redshift (configured via Airflow connection 'redshift-connection')
+        postgres = PostgresHook(postgres_conn_id="redshift-connection")
         conn = postgres.get_conn()
         conn.autocommit = True  # Redshift UNLOAD requires autocommit enabled
         cur = conn.cursor()

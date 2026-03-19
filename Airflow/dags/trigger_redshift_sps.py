@@ -118,7 +118,7 @@ def trigger_redshift_sps():
         """
         Queries Postgres and returns a cursor to the results.
         """
-        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+        postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         cur=conn.cursor()
 
@@ -184,7 +184,7 @@ def trigger_redshift_sps():
         sp_groups=[]
         uniquekeys=[]
 
-        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+        postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         cur=conn.cursor()
 
@@ -255,7 +255,7 @@ def trigger_redshift_sps():
         try:
             return sp_groups
         except:
-            postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+            postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
 
@@ -296,7 +296,7 @@ def trigger_redshift_sps():
                 if i[5] != 'COMPLETED':
                     audit_dict=json.loads(i[8])
                     if adhoc_run != "none":
-                        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+                        postgres=PostgresHook(postgres_conn_id="redshift-connection")
                         conn=postgres.get_conn()
                         conn.autocommit=True
                         cur=conn.cursor()
@@ -311,7 +311,7 @@ def trigger_redshift_sps():
                                 raise Exception(f"Found Exception: {msg}")
                         conn.commit()
                     else:
-                        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+                        postgres=PostgresHook(postgres_conn_id="redshift-connection")
                         conn=postgres.get_conn()
                         conn.autocommit=True
                         cur=conn.cursor()
@@ -411,7 +411,7 @@ def trigger_redshift_sps():
                             cur.close()
                             conn.close()
         except:
-            postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+            postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
             select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
@@ -444,7 +444,7 @@ def trigger_redshift_sps():
         json2=json.loads(json1)
         redshift_layer_info_json=copy.copy(json2)
         try:
-            postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+            postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
 
@@ -485,7 +485,7 @@ def trigger_redshift_sps():
             return redshift_layer_info_json
 
         except:
-            postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+            postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             cur=conn.cursor()
             select_stmt="select batch_date from <audit_schema>.<batch_date_table> where addi_info like '%redshift_layer%'"
@@ -520,7 +520,7 @@ def trigger_redshift_sps():
         json2=json.loads(json1)
         redshift_layer_info_json=copy.copy(json2)
         try:
-            postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+            postgres=PostgresHook(postgres_conn_id="redshift-connection")
             conn=postgres.get_conn()
             conn.autocommit=True
             cur=conn.cursor()

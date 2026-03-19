@@ -145,7 +145,7 @@ def redshift_to_salesforce_reports():
         prcs_nme = config["prcs_nme"]
         table_filter = [tbl.strip().lower() for tbl in config.get("table_name", "").split(",") if tbl.strip()] or []
 
-        pg_hook = PostgresHook(postgres_conn_id='redshift-warehouse')
+        pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         cur = conn.cursor()
 
@@ -235,7 +235,7 @@ def redshift_to_salesforce_reports():
         if not job_list:
             return
         row = job_list[0]
-        pg_hook = PostgresHook(postgres_conn_id='redshift-warehouse')
+        pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         conn.autocommit = True
         cur = conn.cursor()
@@ -281,7 +281,7 @@ def redshift_to_salesforce_reports():
 
     @task()
     def execute_job_group(job_group):
-        pg_hook = PostgresHook(postgres_conn_id='redshift-warehouse')
+        pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         conn.autocommit = True
         cur = conn.cursor()
@@ -408,7 +408,7 @@ def redshift_to_salesforce_reports():
         if not job_list:
             return
         prcs_nme = job_list[0]["prcs_nme"]
-        pg_hook = PostgresHook(postgres_conn_id='redshift-warehouse')
+        pg_hook = PostgresHook(postgres_conn_id='redshift-connection')
         conn = pg_hook.get_conn()
         cur = conn.cursor()
         cur.execute("""

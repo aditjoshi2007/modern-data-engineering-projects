@@ -64,4 +64,6 @@ pytest tests/
 
 ## Disclaimer
 
-This code has been **sanitized** to remove proprietary identifiers while preserving architectural and technical depth.
+- This code has been **sanitized** to remove proprietary identifiers while preserving architectural and technical depth.
+- This project is a personal learning project and doest not contain any proprietary or confidential information from my employer.
+- All code, architecture, and data models are independently created and simplified for demonstration purposes.

@@ -304,7 +304,7 @@ def initload_rawcurrent():
         Creates START and END audit entries when no data
         is available for processing.
         """
-        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+        postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         conn.autocommit=True
         cur=conn.cursor()
@@ -391,7 +391,7 @@ def initload_rawcurrent():
             else:
                 schema_tables.append(i["schema_name"].strip().lower() + "_" + i["table_name"].strip().lower())
 
-        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+        postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         cur=conn.cursor()
         # tbl_list = context["params"]["table_list"]
@@ -538,7 +538,7 @@ def initload_rawcurrent():
                         manifest_cdc_parquet(cdc_files_list, cdc_content, manifest_bucket, manifest_cdc_key)
                         print(f"Manifest file for {schema_name}.{table_name} has been loaded in s3")
 
-                postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+                postgres=PostgresHook(postgres_conn_id="redshift-connection")
                 conn=postgres.get_conn()
                 conn.autocommit=True
                 cur=conn.cursor()
@@ -580,7 +580,7 @@ def initload_rawcurrent():
             if i['schema_name'] == '<schema_name>':
                 raise AirflowSkipException
 
-        postgres=PostgresHook(postgres_conn_id="redshift-warehouse")
+        postgres=PostgresHook(postgres_conn_id="redshift-connection")
         conn=postgres.get_conn()
         cur=conn.cursor()
 

@@ -182,3 +182,8 @@ Tracked attributes include:
 
 ## 📞 Support
 **Data Engineering – Analytics & Reporting Team**
+
+## ⚠️ Disclaimer
+
+- This project is a personal learning project and doest not contain any proprietary or confidential information from my employer.
+- All code, architecture, and data models are independently created and simplified for demonstration purposes.

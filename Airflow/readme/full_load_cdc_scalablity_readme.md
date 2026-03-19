@@ -85,3 +85,8 @@ This allows the platform to scale from **millions → billions → trillions** o
 ✅ Proven enterprise ingestion patterns
 
 This is the same architectural approach used in large‑scale data platforms processing **billions of rows per day**.
+
+## ⚠️ Disclaimer
+
+- This project is a personal learning project and doest not contain any proprietary or confidential information from my employer.
+- All code, architecture, and data models are independently created and simplified for demonstration purposes.

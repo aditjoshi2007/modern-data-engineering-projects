@@ -110,3 +110,8 @@ python inflate_emr_ingestion.py   --env dev   --run_mode CDC   --acct 123456789 
 ## 🧱 Tech Stack
 
 AWS | EMR | RDS | S3 | Glue
+
+## ⚠️ Disclaimer
+
+- This project is a personal learning project and doest not contain any proprietary or confidential information from my employer.
+- All code, architecture, and data models are independently created and simplified for demonstration purposes.

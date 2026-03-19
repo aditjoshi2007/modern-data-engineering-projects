@@ -185,3 +185,8 @@ AWS | AppFlow | Salesforce | S3 | SNS
 - Step Functions orchestration
 - Schema drift detection
 - Centralized flow catalog & dashboard
+
+## ⚠️ Disclaimer
+
+- This project is a personal learning project and doest not contain any proprietary or confidential information from my employer.
+- All code, architecture, and data models are independently created and simplified for demonstration purposes. 
